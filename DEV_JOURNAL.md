@@ -4,8 +4,9 @@
 
 ### 88. Zero-Friction GitHub Actions Android APK Cloud CI (`.github/workflows/build-apk.yml`, `capacitor.config.json`)
 - **Pattern & Workflow:**
-  - Designed an autonomous cloud build pipeline on GitHub Actions (`ubuntu-latest`) capable of synthesizing a complete native Android APK directly from this React + Vite codebase on every push.
-  - Automatically handles Node 20 environment initialization, Vite bundle compilation (`npm run build`), dynamic Capacitor initialization (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`), and automated `AndroidManifest.xml` permission patching for audio capture, external media, and internet access.
+  - Designed an autonomous cloud build pipeline on GitHub Actions (`ubuntu-24.04`) capable of synthesizing a complete native Android APK directly from this React + Vite codebase on every push.
+  - Upgraded to Node.js 22 LTS, `actions/setup-java@v5`, and pinned `ubuntu-24.04` to resolve GitHub Actions deprecation warnings (Node 20 end-of-life and runner migration notices).
+  - Automatically handles Vite bundle compilation (`npm run build`), dynamic Capacitor initialization (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`), and automated `AndroidManifest.xml` permission patching for audio capture, external media, and internet access.
   - Compiles via Gradle (`./gradlew assembleDebug`) with Temurin JDK 17 and Android SDK setup, uploading the compiled `app-debug.apk` directly as a downloadable GitHub Actions artifact for mobile installation on devices like Poco F5 without local compilation overhead.
 
 ### 87. Studio Chat Direct App Text Write & Edit Mode Integration (`StudioChat.tsx`, `gemini.ts`)

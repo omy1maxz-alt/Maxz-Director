@@ -2,6 +2,7 @@
 - **Automated GitHub Actions Android APK Cloud CI (`.github/workflows/build-apk.yml`, `capacitor.config.json`)**:
   - Configured zero-maintenance automated cloud build pipeline via GitHub Actions.
   - Automatically compiles the React + Vite web application, sets up Capacitor Android runtime, provisions essential Android permissions (Audio recording, storage, media, network), builds `./gradlew assembleDebug`, and outputs a ready-to-install `app-debug.apk` directly under GitHub Actions Artifacts on every push.
+  - Updated runner to stable `ubuntu-24.04`, Node.js 22 LTS, and `actions/setup-java@v5` to eliminate runner deprecation warnings.
 - **Studio Chat Direct App Text Write & Edit Mode Toggle (`StudioChat.tsx`, `gemini.ts`)**:
   - Added dedicated **\`App Edit\`** quick-toggle buttons in both the Studio Chat top header toolbar and bottom input action bar.
   - When **\`App Edit\`** is **ON** (enabled by default and persisted in `localStorage`), Gemini receives explicit authority and tool descriptions to directly write, edit, rewrite, and apply text updates to project lyrics, technical instructions/starter prompts, art styles, aspect ratios, creative contexts, recurring motifs, cast characters, and storyboard scene image prompts using function tool calls.
