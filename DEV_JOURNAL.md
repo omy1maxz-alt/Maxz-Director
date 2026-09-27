@@ -2,6 +2,12 @@
 
 ## Technical Constraints & Patterns
 
+### 88. Zero-Friction GitHub Actions Android APK Cloud CI (`.github/workflows/build-apk.yml`, `capacitor.config.json`)
+- **Pattern & Workflow:**
+  - Designed an autonomous cloud build pipeline on GitHub Actions (`ubuntu-latest`) capable of synthesizing a complete native Android APK directly from this React + Vite codebase on every push.
+  - Automatically handles Node 20 environment initialization, Vite bundle compilation (`npm run build`), dynamic Capacitor initialization (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`), and automated `AndroidManifest.xml` permission patching for audio capture, external media, and internet access.
+  - Compiles via Gradle (`./gradlew assembleDebug`) with Temurin JDK 17 and Android SDK setup, uploading the compiled `app-debug.apk` directly as a downloadable GitHub Actions artifact for mobile installation on devices like Poco F5 without local compilation overhead.
+
 ### 87. Studio Chat Direct App Text Write & Edit Mode Integration (`StudioChat.tsx`, `gemini.ts`)
 - **Problem & Root Cause:**
   - Previously, Studio Chat's system prompt strictly prohibited automated tool execution (`updateProjectData`, `updateCharacter`, `updateSceneImagePrompt`) during conversational prompt brainstorming to avoid accidental unwanted project mutations.
