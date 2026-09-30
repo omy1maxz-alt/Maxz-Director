@@ -1,4 +1,22 @@
+### Fixed
+- **React Hook Order Compliance in KieChatModal (`KieChatModal.tsx`)**:
+  - Resolved `Rendered more hooks than during the previous render` runtime warning by moving `useMemo` for `messageTurns` and `totalTurns` unconditionally above the `if (!isOpen) return null;` early return block.
+  - Fixed TypeScript interface signatures for `ChatSession.repoConfig` and `ChatSession.updatedAt` across `KieChatModal.tsx` and `StudioChat.tsx`.
+  - Added missing `handleAttachRawFiles` handler for clipboard drag-and-drop file ingestion.
+
 ### Added
+- **Chat Turn Numbers & Instant Revert / Rollback System (`StudioChat.tsx`, `KieChatModal.tsx`)**:
+  - **Sequential Turn Numbers**: Computed dynamic conversational turn badges (`Turn 1`, `Turn 2`, ... `Turn N`) rendered on all message headers across User, Assistant, and Proxy bubbles. Added a live `Turn X` counter in the chat top header bar.
+  - **Natural Command Revert**: Supported direct chat prompt commands like `revert to turn 3`, `revert to 3`, `revert 3`, `/revert 3`, `rollback to turn 3`, and `undo to turn 3`. When input at Turn 10, the engine immediately removes Turns 4 through 10, restores the conversation back to Turn 3, and updates persistent storage seamlessly without calling the AI API.
+  - **Interactive 1-Tap Revert Controls**: Added direct `↩ Revert` action buttons on individual message toolbars and a quick-revert dropdown selector in the chat header bar for rapid rollback on mobile devices.
+- **Multi-Image & Multi-File Studio Chat Attachments (`StudioChat.tsx`, `gemini.ts`, `chat.ts`)**:
+  - Upgraded Studio Chat to support attaching multiple pictures/images simultaneously alongside multiple source code/text/document files.
+  - Added `multiple` image selection to the file picker and drag-and-drop/paste processors, compressing each photo and maintaining an `attachedImages` array.
+  - Upgraded `sendStudioChatMessage` in `gemini.ts` to package multiple base64 image parts as multimodal inputs into the Gemini generateContent API.
+  - Added visual thumbnail preview ribbon above the input bar with numbered indices, individual delete `(X)` buttons, a total attachment count badge, and a responsive image gallery inside user message bubbles.
+- **Chat Stop Generation Button & Mobile Enter Newline Input Behavior (`StudioChat.tsx`, `KieChatModal.tsx`)**:
+  - Replaced the disabled send state during AI generation with a prominent **Stop** button with a pulse effect, allowing users to instantly abort in-progress generation or autonomous loop steps.
+  - Disabled Enter key submission on textareas across both Studio Chat and KIE Chat. Tapping the Enter key on virtual mobile keyboards (Gboard, MIUI keyboard) or desktop now reliably inserts newlines without triggering accidental message submits. Submissions now exclusively occur when tapping the dedicated Send button.
 - **Automated GitHub Actions Android APK Cloud CI (`.github/workflows/build-apk.yml`, `capacitor.config.json`)**:
   - Configured zero-maintenance automated cloud build pipeline via GitHub Actions.
   - Automatically compiles the React + Vite web application, sets up Capacitor Android runtime, provisions essential Android permissions (Audio recording, storage, media, network), builds `./gradlew assembleDebug`, and outputs a ready-to-install `app-debug.apk` directly under GitHub Actions Artifacts on every push.

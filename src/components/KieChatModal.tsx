@@ -5,7 +5,7 @@ import {
   Layers, MessageSquare, Terminal, Clapperboard, Brain, Music, Code, HelpCircle, Menu,
   Globe, Cpu, Edit3, Paperclip, FileCode, CheckSquare, Github, Coins, Info,
   Maximize2, Minimize2, RotateCcw, AlertCircle, Activity, Wifi, Zap,
-  PanelLeftClose, PanelLeft, Type
+  PanelLeftClose, PanelLeft, Type, History
 } from 'lucide-react';
 import { 
   KIE_POPULAR_MODELS, 
@@ -55,10 +55,10 @@ interface ChatSession {
   reasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh';
   enableWebSearch?: boolean;
   repoConfig?: {
-    owner: string;
-    repo: string;
-    branch: string;
-    isEnabled: boolean;
+    owner?: string;
+    repo?: string;
+    branch?: string;
+    isEnabled?: boolean;
   };
   messages: {
     id: string;
@@ -78,6 +78,7 @@ interface ChatSession {
     savedPercent?: number;
   }[];
   createdAt: number;
+  updatedAt?: number;
 }
 
 interface KieChatModalProps {
@@ -344,11 +345,47 @@ export const KieChatModal: React.FC<KieChatModalProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [sessions, activeSessionId, isLoading]);
 
-  if (!isOpen) return null;
-
   // Safe fallback guarantees activeSession is never undefined on any render pass
   const fallbackSession = sessions[0] || DEFAULT_FIRST_SESSION;
   const activeSession: ChatSession = sessions.find(s => s.id === activeSessionId) || fallbackSession;
+
+  // Compute sequential conversational turn numbers (must be before any early return)
+  const { messageTurns, totalTurns } = useMemo(() => {
+    const map = new Map<string, number>();
+    let currentTurn = 0;
+    for (const msg of activeSession?.messages || []) {
+      if (msg.role === 'user') {
+        currentTurn += 1;
+      }
+      map.set(msg.id, Math.max(1, currentTurn));
+    }
+    return {
+      messageTurns: map,
+      totalTurns: currentTurn,
+    };
+  }, [activeSession?.messages]);
+
+  const handleRevertToTurn = (targetTurn: number) => {
+    if (!activeSession || isLoading) return;
+    if (targetTurn < 1 || targetTurn >= totalTurns) return;
+
+    const keptMessages = activeSession.messages.filter(m => {
+      const t = messageTurns.get(m.id) || 1;
+      return t <= targetTurn;
+    });
+
+    setSessions(prev => prev.map(s => {
+      if (s.id === activeSessionId) {
+        return {
+          ...s,
+          messages: keptMessages,
+        };
+      }
+      return s;
+    }));
+  };
+
+  if (!isOpen) return null;
 
   const handleSaveKey = (newKey: string) => {
     setApiKey(newKey);
@@ -703,8 +740,7 @@ export const KieChatModal: React.FC<KieChatModalProps> = ({
   };
 
   // File Upload Handlers
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const handleAttachRawFiles = (files: File[]) => {
     if (!files || files.length === 0) return;
 
     Array.from(files).forEach(file => {
@@ -747,6 +783,12 @@ export const KieChatModal: React.FC<KieChatModalProps> = ({
         reader.readAsDataURL(file);
       }
     });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    handleAttachRawFiles(Array.from(files));
 
     // Reset input
     if (fileInputRef.current) {
@@ -793,12 +835,26 @@ export const KieChatModal: React.FC<KieChatModalProps> = ({
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && attachedFiles.length === 0) || isLoading) return;
 
+    const userText = inputMessage.trim();
+
+    // Check for Revert command: e.g. "revert to turn 3", "revert to 3", "revert 3", "/revert 3", "rollback to turn 3", "undo to turn 3"
+    const revertRegex = /^(?:\/)?(?:revert|rollback|undo)(?:\s+to)?(?:\s+turn)?(?:\s+#)?\s*(\d+)$/i;
+    const revertMatch = userText.match(revertRegex);
+    if (revertMatch) {
+      const targetTurn = parseInt(revertMatch[1], 10);
+      setInputMessage('');
+      setAttachedFiles([]);
+      setIsInputExpanded(false);
+      if (!isNaN(targetTurn) && targetTurn > 0 && targetTurn < totalTurns) {
+        handleRevertToTurn(targetTurn);
+      }
+      return;
+    }
+
     if (!apiKey.trim()) {
       setShowKeyInput(true);
       return;
     }
-
-    const userText = inputMessage.trim();
     const attachmentsToSave = attachedFiles.length > 0 ? [...attachedFiles] : undefined;
 
     setInputMessage('');
@@ -2029,9 +2085,23 @@ Carefully review the conversation and your previous replies above.
                         <span className="text-[10px] text-white/20">
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
+                        <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-indigo-300 text-[9px] font-mono font-bold shadow-sm" title={`Turn #${messageTurns.get(msg.id) || 1}`}>
+                          Turn {messageTurns.get(msg.id) || 1}
+                        </span>
 
                         {/* Top Action Toolbar */}
                         <div className="flex items-center gap-1 opacity-70 md:opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                          {((messageTurns.get(msg.id) || 1) < totalTurns) && (
+                            <button
+                              onClick={() => handleRevertToTurn(messageTurns.get(msg.id) || 1)}
+                              disabled={isLoading}
+                              className="p-1 rounded hover:bg-amber-500/20 text-white/50 hover:text-amber-300 disabled:opacity-30 transition-colors flex items-center gap-0.5"
+                              title={`Revert conversation to Turn ${messageTurns.get(msg.id) || 1} (removes turns ${(messageTurns.get(msg.id) || 1) + 1} to ${totalTurns})`}
+                            >
+                              <History className="w-3 h-3 text-amber-400" />
+                              <span className="text-[9px] font-mono text-amber-300/80 hidden sm:inline">↩ Revert</span>
+                            </button>
+                          )}
                           {isLongMessage && (
                             <button
                               onClick={() => toggleCollapseMessage(msg.id)}
@@ -2415,7 +2485,7 @@ Carefully review the conversation and your previous replies above.
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-white/40 hidden md:inline">Shift+Enter for newline • Enter to send</span>
+                        <span className="text-[10px] text-white/40 hidden md:inline">Enter for newline • Tap Send to submit</span>
                         <button
                           type="button"
                           onClick={() => setIsInputExpanded(false)}
@@ -2492,10 +2562,7 @@ Carefully review the conversation and your previous replies above.
                         }
                       }}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        } else if (e.key === 'Escape' && isInputExpanded) {
+                        if (e.key === 'Escape' && isInputExpanded) {
                           setIsInputExpanded(false);
                         }
                       }}

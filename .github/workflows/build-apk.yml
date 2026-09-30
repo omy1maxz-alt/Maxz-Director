@@ -11,17 +11,17 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Node.js 22 LTS
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
       - name: Install Dependencies & Build Web App
         run: |
-          npm ci
+          npm install
           npm run build
 
       - name: Setup Capacitor Android
@@ -35,20 +35,12 @@ jobs:
       - name: Configure Android Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-
           if [ -f "$MANIFEST" ]; then
-            sed -i '/<\/manifest>/i \
-              <uses-permission android:name="android.permission.INTERNET" />\
-              <uses-permission android:name="android.permission.RECORD_AUDIO" />\
-              <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\
-              <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />\
-              <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />' "$MANIFEST"
+            sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />\n    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />' "$MANIFEST"
           fi
 
       - name: Setup Java JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"

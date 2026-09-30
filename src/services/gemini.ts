@@ -2110,7 +2110,7 @@ export const pruneAndSanitizeStudioContents = (
 export const sendStudioChatMessage = async (
     history: { role: 'user' | 'model', parts: any[] }[],
     newMessage: string,
-    attachedImageBase64?: string,
+    attachedImageBase64?: string | string[],
     apiKey?: string,
     projectData?: ProjectData,
     directorPlan?: DirectorPlan,
@@ -2320,12 +2320,19 @@ ${isAppEditEnabled ? `   - ✏️ **APP DIRECT WRITE/EDIT MODE IS ACTIVE:** You 
     if (newMessage) newParts.push({ text: newMessage });
     
     if (attachedImageBase64) {
-        newParts.push({
-            inlineData: {
-                data: attachedImageBase64.split(',')[1],
-                mimeType: attachedImageBase64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
+        const imageList = Array.isArray(attachedImageBase64) ? attachedImageBase64 : [attachedImageBase64];
+        for (const img of imageList) {
+            if (typeof img === 'string' && img.includes(',')) {
+                const mimeMatch = img.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+                const mimeType = mimeMatch ? mimeMatch[1] : (img.startsWith('data:image/png') ? 'image/png' : 'image/jpeg');
+                newParts.push({
+                    inlineData: {
+                        data: img.split(',')[1],
+                        mimeType: mimeType,
+                    }
+                });
             }
-        });
+        }
     }
     if (newParts.length === 0) newParts.push({ text: "[Empty message]" });
 

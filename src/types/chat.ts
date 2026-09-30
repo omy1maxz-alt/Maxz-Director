@@ -28,6 +28,7 @@ export interface StudioMessage {
   agentPersona?: 'creator' | 'user_proxy' | 'critic' | 'devil' | 'collaborator';
   agentName?: string;
   attachedImage?: string;
+  attachedImages?: string[];
   generatedImageUrl?: string;
   attachments?: FileAttachmentItem[];
   loopSteps?: Array<{ step: number; title: string; summary: string; output: string }>;

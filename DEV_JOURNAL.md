@@ -2,6 +2,41 @@
 
 ## Technical Constraints & Patterns
 
+### 92. Strict React Rules of Hooks Execution Order (`KieChatModal.tsx`, `StudioChat.tsx`)
+- **Problem & Root Cause:**
+  - In `KieChatModal.tsx`, an early return conditional (`if (!isOpen) return null;`) was located before a `useMemo` hook that computes turn numbering (`messageTurns`, `totalTurns`). When the modal toggled visibility between renders, React detected an inconsistent number/order of hooks, triggering a runtime crash.
+- **Architectural Solution:**
+  - All hooks (`useState`, `useRef`, `useEffect`, `useMemo`, `useCallback`) must always be declared unconditionally at the very top level of functional components before any conditional early exit checks.
+  - Aligned TypeScript interface definitions (`ChatSession.repoConfig`, `ChatSession.updatedAt`) with strict `tsc --noEmit` validation.
+
+### 91. Chat Turn Numbering & History Revert/Rollback Engine (`StudioChat.tsx`, `KieChatModal.tsx`)
+- **Problem & Architectural Challenge:**
+  - Long conversational workflows often produce branching ideas or unwanted iterations. Users needed a clear, sequential turn index for each exchange and an intuitive mechanism to "time-travel" or roll back to an earlier turn (e.g. at Turn 10, reverting to Turn 3 should cleanly remove Turns 4 through 10 from memory, UI, and IndexedDB).
+- **Engineering Solution:**
+  1. **Sequential Turn Mapping**: Built an O(N) turn index calculator (`useMemo`) mapping each user message and its succeeding assistant responses to a monotonic turn index (`Turn 1`, `Turn 2`, ... `Turn N`).
+  2. **Multi-Modal Revert Entry Points**:
+     - **Command Parser**: Intercepts commands like `revert to turn 3`, `revert 3`, `/revert 3`, `rollback to turn 3`, and `undo to turn 3` inside `handleSendMessage`. It bypasses the AI inference pipeline, slices messages to `turn <= targetTurn`, updates storage, and prompts the user.
+     - **In-Message 1-Tap Revert Action**: Renders an amber `↩ Revert` button on all historical turns (`turn < totalTurns`).
+     - **Header Bar Quick-Selector**: Displays current `Turn X` and a dropdown selector listing earlier turns with their respective rollback impact (e.g., "Turn 3 (remove 4..10)").
+
+### 90. Multi-Image & Multi-File Multimodal Studio Chat Architecture (`StudioChat.tsx`, `gemini.ts`, `chat.ts`)
+- **Problem & Root Cause:**
+  - Previously, Studio Chat only stored a single `attachedImage: string | null` state. If a user selected multiple reference photos, pasted multiple screenshots, or dropped several images together, each successive image overwrote the previous one instead of queuing them together.
+  - Furthermore, `sendStudioChatMessage` only encoded one image part in its API payload.
+- **Architectural Solution:**
+  1. **Array-Based Multi-Image State**: Refactored `attachedImage` to an `attachedImages: string[]` array with backward-compatible single image accessors.
+  2. **Batch Compression & Ingestion**: Enhanced `processRawFiles` and `handleImageUpload` (`<input type="file" multiple ...>`) to compress all selected photos in parallel and append them to `attachedImages`.
+  3. **Multimodal API Packaging**: Updated `sendStudioChatMessage` to accept `attachedImageBase64?: string | string[]` and package all images into `newParts` with proper MIME detection (`image/png`, `image/jpeg`, `image/webp`).
+  4. **Mobile Touch UI Preview & Gallery**: Implemented a scrollable thumbnail preview ribbon with index badges and individual delete buttons, plus an in-message image gallery allowing full-size inspection.
+
+### 89. Mobile Virtual Keyboard Enter Handling & Prominent Chat Stop Button (`StudioChat.tsx`, `KieChatModal.tsx`)
+- **Problem & Root Cause:**
+  - On mobile touch devices (such as Poco F5 with Gboard/MIUI keyboard), pressing the "Enter" / "Return" key on the virtual keyboard was intercepted as a form submission event, inadvertently sending half-written messages or multiline prompts prematurely.
+  - Furthermore, during extended autonomous loops or long streaming completions, users needed an immediate, high-visibility "Stop" action to halt the model without waiting for completion or navigating away.
+- **Architectural Solution:**
+  1. **Enter Key Decoupling**: Removed Enter interception on textareas so pressing Enter strictly inserts clean newlines (`\n`) for formatted prompts. Messages are now sent exclusively through deliberate taps on the `Send` button.
+  2. **Reactive Stop Action**: In both Studio Chat and KIE Chat, the action button dynamically swaps during `isLoading` to a red pulsing `Stop` button (`Square` icon) that triggers cancellation tokens/abort refs, resets loading states, and halts subsequent loop execution cleanly.
+
 ### 88. Zero-Friction GitHub Actions Android APK Cloud CI (`.github/workflows/build-apk.yml`, `capacitor.config.json`)
 - **Pattern & Workflow:**
   - Designed an autonomous cloud build pipeline on GitHub Actions (`ubuntu-24.04`) capable of synthesizing a complete native Android APK directly from this React + Vite codebase on every push.
