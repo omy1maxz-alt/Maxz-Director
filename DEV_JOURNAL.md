@@ -2,6 +2,19 @@
 
 ## Technical Constraints & Patterns
 
+### 93. CI/CD Reproducibility & npm ci Lockfile Parity (`package-lock.json`, `build-apk.yml`)
+- **Problem & Root Cause:**
+  - GitHub Actions CI failed at the `npm ci` stage with:
+    `Missing: remark-breaks@4.0.0 from lock file`
+    `Missing: mdast-util-newline-to-break@2.0.0 from lock file`
+  - While `package.json` had added `"remark-breaks": "^4.0.0"`, `package-lock.json` had not been regenerated and committed. Because `npm ci` strictly verifies that every dependency declared in `package.json` has an identical entry in `package-lock.json`, it terminates with exit code 1 to avoid non-deterministic builds.
+  - Furthermore, `android-actions/setup-android@v3` attempted to download the deprecated Android SDK `tools` package on Ubuntu 24.04 runners, failing with `Failed to find package 'tools'`.
+- **Architectural Solution:**
+  1. Regenerated `package-lock.json` using `npm install --package-lock-only`, properly capturing `remark-breaks@4.0.0` and `mdast-util-newline-to-break@2.0.0` in both root dependencies and package trees.
+  2. Verified `npm ci --dry-run` completes with exit code 0.
+  3. Preserved `npm ci` in `.github/workflows/build-apk.yml` as the authoritative, reproducible build step rather than falling back to `npm install`.
+  4. Specified explicit SDK targets in `android-actions/setup-android@v3` (`packages: "platforms;android-34 build-tools;34.0.0 cmdline-tools;latest"`) and added `sdkmanager --licenses` auto-acceptance to ensure seamless Gradle APK compilation.
+
 ### 92. Strict React Rules of Hooks Execution Order (`KieChatModal.tsx`, `StudioChat.tsx`)
 - **Problem & Root Cause:**
   - In `KieChatModal.tsx`, an early return conditional (`if (!isOpen) return null;`) was located before a `useMemo` hook that computes turn numbering (`messageTurns`, `totalTurns`). When the modal toggled visibility between renders, React detected an inconsistent number/order of hooks, triggering a runtime crash.

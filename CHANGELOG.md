@@ -1,4 +1,10 @@
 ### Fixed
+- **Strict `package-lock.json` Parity & `npm ci` Reproducibility (`package-lock.json`, `.github/workflows/build-apk.yml`)**:
+  - Synchronized `package-lock.json` with `package.json` to include `remark-breaks@^4.0.0` and its dependency `mdast-util-newline-to-break@^2.0.0`, eliminating the CI failure (`Missing: remark-breaks@4.0.0 from lock file`).
+  - Preserved `npm ci` in `.github/workflows/build-apk.yml` to guarantee strict, deterministic, and immutable dependency resolution on GitHub Actions runners.
+  - Resolved `android-actions/setup-android@v3` failure caused by the removal of the deprecated `tools` package by specifying explicit modern packages (`platforms;android-34`, `build-tools;34.0.0`, `cmdline-tools;latest`) and adding an automated license acceptance step.
+
+### Fixed
 - **React Hook Order Compliance in KieChatModal (`KieChatModal.tsx`)**:
   - Resolved `Rendered more hooks than during the previous render` runtime warning by moving `useMemo` for `messageTurns` and `totalTurns` unconditionally above the `if (!isOpen) return null;` early return block.
   - Fixed TypeScript interface signatures for `ChatSession.repoConfig` and `ChatSession.updatedAt` across `KieChatModal.tsx` and `StudioChat.tsx`.
